@@ -19,7 +19,7 @@
 
 The competition requires predicting five quantities per 256×256 tile from compressed 64-channel AlphaEarth satellite embeddings: building cover, vegetation cover, water cover, building height, and vegetation height. Solved naively — a single model trained end-to-end from embedding to output — this is the *master problem*. It is hard because the model must simultaneously internalize geographic structure, spectral-to-semantic mappings, object boundary priors, and cross-task correlations across a heterogeneous loss surface.
 
-Our key observation is that a task-specific Geospatial Foundation Model already encodes most of this knowledge. Its predictions are a **credible but imperfect prior**: they capture global structure and achieve strong performance on vegetation and water, but carry systematic local errors on buildings and height in complex urban scenes. The residual between this prior and the ground truth is far smaller and more structured than the full prediction space.
+Our key observation is that Stage 1 — a multitask ConvNeXt UNet we trained end-to-end on the competition data — already produces strong predictions for vegetation and water, but carries systematic local errors on buildings and height in complex urban scenes. The residual between this prior and the ground truth is far smaller and more structured than the full prediction space.
 
 We therefore define the *slave problem*: **given a mostly-correct prediction map, identify precisely where it is wrong and estimate the correction**. This is structurally easier to learn:
 
@@ -34,7 +34,7 @@ We therefore define the *slave problem*: **given a mostly-correct prediction map
 
 ## Stage 1 — GeoMTConvNeXt (Anchor Predictions)
 
-The first stage uses **GeoMTConvNeXt**, a ConvNeXt-based Geospatial Multitask Foundation Model hosted at [`Abdoul27/embed2heights-geoconvnext`](https://huggingface.co/Abdoul27/embed2heights-geoconvnext). This model was specifically fine-tuned on the embed2heights task using the 64-channel AlphaEarth/Tessera embeddings provided by the competition. These embeddings are dense compressed representations of multi-temporal, multi-spectral Earth Observation imagery, encoding rich spectral and temporal context into a 64-dimensional feature volume per spatial location.
+The first stage is **GeoMTConvNeXt**, a multitask ConvNeXt UNet we trained from scratch on the embed2heights training set. The model takes the 64-channel AlphaEarth embedding as input and is optimised jointly on all five competition tasks (building cover, vegetation cover, water cover, building height, vegetation height) using a combination of L1, Lovász IoU, and masked SmoothL1 losses. Its weights are hosted at [`Abdoul27/embed2heights-geoconvnext`](https://huggingface.co/Abdoul27/embed2heights-geoconvnext).
 
 GeoMTConvNeXt produces a **4-channel prior map** `[4, 256, 256]` per tile:
 
